@@ -66,12 +66,21 @@ Every team member should understand the overall application and be able to expla
     ```bash
     java TestPhase4
     ```
+- [x] **Phase 5: Export Trip Itinerary to Text File** (`service/ExportService`, `ui/MainFrame`, `TestPhase5`)
+  - "Export Itinerary" button integrated in Complete Itinerary tab
+  - Plain-text `.txt` export using `JFileChooser`, `PrintWriter`, and `BufferedWriter`
+  - Safe filename sanitization removing invalid characters (`\ / : * ? " < > |`)
+  - Automatic `.txt` extension appending and cancellation handling
+  - Run Phase 5 automated test suite:
+    ```bash
+    java TestPhase5
+    ```
 
 ## How to Run
 
 ### 1. Compile All Files:
 ```bash
-javac model/*.java ui/*.java Main.java TestPhase1.java TestPhase2.java TestPhase3.java TestPhase4.java
+javac model/*.java service/*.java ui/*.java Main.java TestPhase1.java TestPhase2.java TestPhase3.java TestPhase4.java TestPhase5.java
 ```
 
 ### 2. Run All Automated Test Suites:
@@ -80,9 +89,11 @@ java TestPhase1
 java TestPhase2
 java TestPhase3
 java TestPhase4
+java TestPhase5
 ```
 
 ### 3. Run the Desktop Application:
 ```bash
 java Main
 ```
+

@@ -7,11 +7,13 @@ import model.Flight;
 import model.Train;
 import model.Transport;
 import model.Trip;
+import service.ExportService;
 
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
+import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
@@ -23,6 +25,7 @@ import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
 import javax.swing.border.TitledBorder;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.table.DefaultTableModel;
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
@@ -33,6 +36,8 @@ import java.awt.Font;
 import java.awt.GridLayout;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.io.File;
+import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -155,6 +160,7 @@ public class MainFrame extends JFrame {
     // Complete Itinerary Tab Components
     private JTextArea txtItinerarySummary;
     private JButton btnRefreshItinerary;
+    private JButton btnExportItinerary;
     private JButton btnViewItinerary;
 
     public MainFrame() {
@@ -908,13 +914,23 @@ public class MainFrame extends JFrame {
         lblHeading.setFont(new Font("Arial", Font.BOLD, 13));
         lblHeading.setForeground(new Color(25, 45, 80));
 
+        JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
+
         btnRefreshItinerary = new JButton("Refresh Itinerary");
         btnRefreshItinerary.setFont(new Font("Arial", Font.PLAIN, 12));
         btnRefreshItinerary.setToolTipText("Regenerate itinerary text with the latest trip details");
         btnRefreshItinerary.addActionListener(e -> refreshItinerary());
 
+        btnExportItinerary = new JButton("Export Itinerary");
+        btnExportItinerary.setFont(new Font("Arial", Font.BOLD, 12));
+        btnExportItinerary.setToolTipText("Export the current itinerary to a plain-text (.txt) file");
+        btnExportItinerary.addActionListener(e -> handleExportItinerary());
+
+        btnPanel.add(btnRefreshItinerary);
+        btnPanel.add(btnExportItinerary);
+
         topBar.add(lblHeading, BorderLayout.WEST);
-        topBar.add(btnRefreshItinerary, BorderLayout.EAST);
+        topBar.add(btnPanel, BorderLayout.EAST);
         tab.add(topBar, BorderLayout.NORTH);
 
         // Read-only text area with monospaced font
@@ -941,6 +957,62 @@ public class MainFrame extends JFrame {
             txtItinerarySummary.setCaretPosition(0); // Scroll to top
         } else {
             txtItinerarySummary.setText("No trip selected.");
+        }
+    }
+
+    /**
+     * Handles exporting the selected trip's itinerary via a file save dialog.
+     */
+    public boolean handleExportItinerary() {
+        if (selectedTrip == null) {
+            showMessage("Please select a trip to export its itinerary.", "No Trip Selected", JOptionPane.WARNING_MESSAGE);
+            return false;
+        }
+
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setDialogTitle("Export Itinerary as Text File");
+        fileChooser.setFileFilter(new FileNameExtensionFilter("Text Files (*.txt)", "txt"));
+
+        String defaultName = ExportService.sanitizeFilename(selectedTrip.getTripName()) + "_Itinerary.txt";
+        fileChooser.setSelectedFile(new File(defaultName));
+
+        int choice = fileChooser.showSaveDialog(this);
+        if (choice != JFileChooser.APPROVE_OPTION) {
+            return false; // User cancelled export gracefully without writing
+        }
+
+        File targetFile = fileChooser.getSelectedFile();
+        if (targetFile == null) {
+            return false;
+        }
+
+        targetFile = ExportService.ensureTxtExtension(targetFile);
+        return exportItineraryToFile(targetFile);
+    }
+
+    /**
+     * Exports the selected trip's itinerary directly to the target file.
+     * Accessible programmatically for headless testing and UI invocation.
+     */
+    public boolean exportItineraryToFile(File targetFile) {
+        if (selectedTrip == null) {
+            showMessage("No trip selected to export.", "Export Warning", JOptionPane.WARNING_MESSAGE);
+            return false;
+        }
+        if (targetFile == null) {
+            showMessage("Target file cannot be null.", "Export Error", JOptionPane.ERROR_MESSAGE);
+            return false;
+        }
+
+        try {
+            ExportService.exportItinerary(selectedTrip, targetFile);
+            showMessage("Itinerary exported successfully to:\n" + targetFile.getAbsolutePath(),
+                    "Export Successful", JOptionPane.INFORMATION_MESSAGE);
+            return true;
+        } catch (IOException ex) {
+            showMessage("Failed to export itinerary: " + ex.getMessage(),
+                    "Export Error", JOptionPane.ERROR_MESSAGE);
+            return false;
         }
     }
 
@@ -1770,5 +1842,9 @@ public class MainFrame extends JFrame {
 
     public JButton getBtnViewItinerary() {
         return btnViewItinerary;
+    }
+
+    public JButton getBtnExportItinerary() {
+        return btnExportItinerary;
     }
 }
