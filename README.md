@@ -34,4 +34,18 @@ Every team member should understand the overall application and be able to expla
     javac model/*.java TestPhase1.java
     java TestPhase1
     ```
+- [x] **Phase 2: Basic Java Swing GUI** (`Main`, `ui/MainFrame`)
+  - Compile all files:
+    ```bash
+    javac model/*.java ui/*.java Main.java TestPhase1.java TestPhase2.java
+    ```
+  - Run the application:
+    ```bash
+    java Main
+    ```
+  - Run automated GUI & validation test suite:
+    ```bash
+    java TestPhase2
+    ```
+
 
