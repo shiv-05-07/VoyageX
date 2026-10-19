@@ -100,5 +100,89 @@ public class ExportService {
             writer.print(content);
             writer.flush();
         }
+
+        // Thread-safe counter increment
+        recordExport();
+    }
+
+    // Thread-safe export counter demonstrating thread synchronization (Unit 3)
+    private static int totalExportsCount = 0;
+
+    /**
+     * Synchronized method recording an export event safely across multiple threads.
+     * Demonstrates thread synchronization (Unit 3).
+     */
+    public static synchronized void recordExport() {
+        totalExportsCount++;
+    }
+
+    /**
+     * Synchronized method querying the export counter.
+     */
+    public static synchronized int getTotalExportsCount() {
+        return totalExportsCount;
+    }
+
+    /**
+     * Resets the export counter (primarily for test suite isolation).
+     */
+    public static synchronized void resetExportsCount() {
+        totalExportsCount = 0;
+    }
+
+    /**
+     * Callback interface invoked upon completion of an asynchronous export.
+     * Demonstrates functional interface and callback pattern.
+     */
+    @FunctionalInterface
+    public interface ExportCallback {
+        void onExportFinished(boolean success, String message);
+    }
+
+    /**
+     * Exports the trip itinerary asynchronously in a separate background worker thread,
+     * preventing UI freezing during large file I/O operations, and posts results back
+     * to the Swing Event Dispatch Thread (EDT).
+     * 
+     * Demonstrates:
+     * - Creating threads using Runnable (Unit 3).
+     * - Thread lifecycle management (NEW -> RUNNABLE -> TERMINATED).
+     * - Inter-thread communication: worker thread calling SwingUtilities.invokeLater().
+     * 
+     * @param trip the Trip whose itinerary is to be exported
+     * @param targetFile the destination text file
+     * @param callback the completion callback invoked on the EDT (nullable)
+     * @return the started Thread instance for lifecycle monitoring or join()
+     */
+    public static Thread exportItineraryAsync(Trip trip, File targetFile, ExportCallback callback) {
+        Thread workerThread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                boolean success = false;
+                String msg = "";
+                try {
+                    exportItinerary(trip, targetFile);
+                    success = true;
+                    msg = "Itinerary successfully exported to " + targetFile.getName();
+                } catch (Exception ex) {
+                    success = false;
+                    msg = "Export failed: " + ex.getMessage();
+                }
+
+                // Safely notify on Event Dispatch Thread (EDT)
+                final boolean finalSuccess = success;
+                final String finalMsg = msg;
+                if (callback != null) {
+                    javax.swing.SwingUtilities.invokeLater(() -> {
+                        callback.onExportFinished(finalSuccess, finalMsg);
+                    });
+                }
+            }
+        }, "VoyageX-ExportWorker");
+
+        // Set as non-daemon worker so I/O finishes reliably
+        workerThread.setDaemon(false);
+        workerThread.start();
+        return workerThread;
     }
 }

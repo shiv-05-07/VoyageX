@@ -87,6 +87,16 @@ Every team member should understand the overall application and be able to expla
     ```bash
     java -cp ".;lib/*" TestPhase6
     ```
+- [x] **Phase 7: Java Syllabus Gap Review & Implementation** (`interfaces/Billable`, `exception/InvalidTripDataException`, `model/Trip`, `service/ExportService`, `TestPhase7`)
+  - User-defined interface `Billable` implemented by `Transport`, `Activity`, `Expense`, and `Trip` with Java 8 `default` method
+  - Java 8 Stream API in `Trip`: declarative cost calculations, date filtering, and category summing
+  - Custom checked exception hierarchy (`InvalidTripDataException`, `InvalidBudgetException`) with cause chaining and strict validation
+  - Multithreading: asynchronous export worker thread (`Runnable`), thread lifecycle, and safe EDT UI updates
+  - Thread safety: `synchronized` export counter methods preventing race conditions across concurrent threads
+  - Run Phase 7 automated test suite:
+    ```bash
+    java -cp ".;lib/*" TestPhase7
+    ```
 
 ## Database Storage & Inspection
 
@@ -105,7 +115,7 @@ Every team member should understand the overall application and be able to expla
 
 ### 1. Compile All Files:
 ```bash
-javac -cp ".;lib/*" model/*.java dao/*.java service/*.java ui/*.java Main.java TestPhase1.java TestPhase2.java TestPhase3.java TestPhase4.java TestPhase5.java TestPhase6.java
+javac -cp ".;lib/*" interfaces/*.java exception/*.java model/*.java dao/*.java service/*.java ui/*.java Main.java TestPhase1.java TestPhase2.java TestPhase3.java TestPhase4.java TestPhase5.java TestPhase6.java TestPhase7.java
 ```
 
 ### 2. Run All Automated Test Suites:
@@ -116,10 +126,12 @@ java -cp ".;lib/*" TestPhase3
 java -cp ".;lib/*" TestPhase4
 java -cp ".;lib/*" TestPhase5
 java -cp ".;lib/*" TestPhase6
+java -cp ".;lib/*" TestPhase7
 ```
 
 ### 3. Run the Desktop Application:
 ```bash
 java -cp ".;lib/*" Main
 ```
+
 

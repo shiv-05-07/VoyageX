@@ -1,5 +1,7 @@
 package model;
 
+import interfaces.Billable;
+
 /**
  * Transport represents an abstract travel mode in the VoyageX planner.
  * 
@@ -7,8 +9,9 @@ package model;
  * - Abstraction: Cannot be instantiated directly; defines common template for subclasses.
  * - Encapsulation: Private fields with public getters and setters.
  * - Abstract Method: calculateCost() must be implemented by each concrete transport subclass.
+ * - Interface Implementation: Implements Billable (Unit 2).
  */
-public abstract class Transport {
+public abstract class Transport implements Billable {
     private String transportType;
     private String source;
     private String destination;

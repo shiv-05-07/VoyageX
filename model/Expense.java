@@ -1,5 +1,7 @@
 package model;
 
+import interfaces.Billable;
+
 /**
  * Expense represents an incidental cost incurred during a trip (e.g., Food, Hotel, Souvenirs).
  * 
@@ -7,8 +9,9 @@ package model;
  * - Encapsulation: Private data members protected behind getters and setters.
  * - Constructor Overloading: Multiple constructors providing flexible instantiation.
  * - 'this' keyword: Constructor chaining and self-reference.
+ * - Interface Implementation: Implements Billable (Unit 2).
  */
-public class Expense {
+public class Expense implements Billable {
     private int id;
     private String category;
     private String description;
@@ -67,6 +70,11 @@ public class Expense {
         } else {
             this.amount = amount;
         }
+    }
+
+    @Override
+    public double calculateCost() {
+        return getAmount();
     }
 
     @Override

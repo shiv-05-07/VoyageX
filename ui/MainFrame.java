@@ -9,6 +9,8 @@ import model.Transport;
 import model.Trip;
 import dao.TripDAO;
 import service.ExportService;
+import exception.InvalidTripDataException;
+import exception.InvalidBudgetException;
 
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
@@ -113,6 +115,7 @@ public class MainFrame extends JFrame {
     private JLabel lblTableStatus;
     private JButton btnManageTrip;
     private JButton btnDeleteTrip;
+    private JButton btnBackToHome;
 
     // Manage Trip Screen Components
     private JLabel lblManageTripTitle;
@@ -177,7 +180,7 @@ public class MainFrame extends JFrame {
 
     private void initializeUI() {
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(720, 560);
+        setSize(780, 560);
         setMinimumSize(new Dimension(640, 480));
         setLocationRelativeTo(null); // Center window on screen
 
@@ -416,39 +419,41 @@ public class MainFrame extends JFrame {
         panel.add(centerPanel, BorderLayout.CENTER);
 
         // Bottom Navigation Buttons
-        JPanel buttonsPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 10));
+        JPanel buttonsPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 8, 10));
 
         btnManageTrip = new JButton("Manage Selected Trip");
-        btnManageTrip.setFont(new Font("Arial", Font.BOLD, 13));
+        btnManageTrip.setFont(new Font("Arial", Font.BOLD, 12));
         btnManageTrip.setToolTipText("Configure transport, activities, expenses and budget for the selected trip");
         btnManageTrip.addActionListener(e -> handleManageTrip());
 
         btnViewItinerary = new JButton("View Full Itinerary");
-        btnViewItinerary.setFont(new Font("Arial", Font.BOLD, 13));
+        btnViewItinerary.setFont(new Font("Arial", Font.BOLD, 12));
         btnViewItinerary.setToolTipText("View the complete consolidated itinerary for the selected trip");
         btnViewItinerary.addActionListener(e -> handleViewItinerary());
 
         btnDeleteTrip = new JButton("Delete Trip");
-        btnDeleteTrip.setFont(new Font("Arial", Font.PLAIN, 13));
+        btnDeleteTrip.setFont(new Font("Arial", Font.PLAIN, 12));
         btnDeleteTrip.setToolTipText("Permanently delete the selected trip and all its details");
         btnDeleteTrip.addActionListener(e -> handleDeleteTrip());
 
         JButton btnAddAnother = new JButton("Create Another Trip");
-        btnAddAnother.setFont(new Font("Arial", Font.PLAIN, 13));
+        btnAddAnother.setFont(new Font("Arial", Font.PLAIN, 12));
+        btnAddAnother.setToolTipText("Open the trip creation form");
         btnAddAnother.addActionListener(e -> {
             clearCreateTripForm();
             showScreen(SCREEN_CREATE);
         });
 
-        JButton btnBack = new JButton("Back to Home");
-        btnBack.setFont(new Font("Arial", Font.PLAIN, 13));
-        btnBack.addActionListener(e -> showScreen(SCREEN_HOME));
+        btnBackToHome = new JButton("Back to Home");
+        btnBackToHome.setFont(new Font("Arial", Font.PLAIN, 12));
+        btnBackToHome.setToolTipText("Return to the main home dashboard");
+        btnBackToHome.addActionListener(e -> showScreen(SCREEN_HOME));
 
         buttonsPanel.add(btnManageTrip);
         buttonsPanel.add(btnViewItinerary);
         buttonsPanel.add(btnDeleteTrip);
         buttonsPanel.add(btnAddAnother);
-        buttonsPanel.add(btnBack);
+        buttonsPanel.add(btnBackToHome);
 
         panel.add(buttonsPanel, BorderLayout.SOUTH);
 
@@ -1030,6 +1035,25 @@ public class MainFrame extends JFrame {
     }
 
     /**
+     * Programmatic asynchronous export helper executing in a background thread.
+     * Demonstrates multithreading and Swing EDT callbacks (Unit 3).
+     * 
+     * @param targetFile destination text file
+     * @param callback callback to notify upon completion
+     * @return started Thread instance
+     */
+    public Thread exportItineraryAsyncToFile(File targetFile, ExportService.ExportCallback callback) {
+        if (selectedTrip == null) {
+            showMessage("No trip selected to export.", "Export Warning", JOptionPane.WARNING_MESSAGE);
+            if (callback != null) {
+                callback.onExportFinished(false, "No trip selected");
+            }
+            return null;
+        }
+        return ExportService.exportItineraryAsync(selectedTrip, targetFile, callback);
+    }
+
+    /**
      * Handles the View Itinerary action from the trips list table.
      */
     public boolean handleViewItinerary() {
@@ -1600,27 +1624,32 @@ public class MainFrame extends JFrame {
 
     /**
      * Validates raw input strings for creating a trip.
+    /**
+     * Validates raw input strings for creating a trip and throws a custom exception on failure.
+     * Demonstrates custom checked exception hierarchy and exception throwing (Unit 3).
      * 
-     * @return null if valid, or a descriptive error message if invalid.
+     * @throws InvalidBudgetException if budget is negative, zero, or non-numeric
+     * @throws InvalidTripDataException if required fields are missing or dates are invalid
      */
-    public String validateTripInputs(String tripName, String destination, String startDateStr, String endDateStr, String budgetStr) {
+    public void validateTripInputsStrict(String tripName, String destination, String startDateStr, String endDateStr, String budgetStr)
+            throws InvalidTripDataException, InvalidBudgetException {
         // 1. Validate required fields (cannot be empty)
         if (tripName == null || tripName.trim().isEmpty()
                 || destination == null || destination.trim().isEmpty()
                 || startDateStr == null || startDateStr.trim().isEmpty()
                 || endDateStr == null || endDateStr.trim().isEmpty()
                 || budgetStr == null || budgetStr.trim().isEmpty()) {
-            return "All fields are required. Please fill in all fields.";
+            throw new InvalidTripDataException("All fields are required. Please fill in all fields.");
         }
 
         // 2. Validate numeric budget
         try {
             double budget = Double.parseDouble(budgetStr.trim());
             if (budget <= 0) {
-                return "Budget must be greater than zero.";
+                throw new InvalidBudgetException("Budget must be greater than zero.");
             }
         } catch (NumberFormatException ex) {
-            return "Budget must be a valid number (e.g., 15000 or 25000.50).";
+            throw new InvalidBudgetException("Budget must be a valid number (e.g., 15000 or 25000.50).", ex);
         }
 
         // 3. Validate dates (format and chronological order)
@@ -1632,13 +1661,27 @@ public class MainFrame extends JFrame {
             Date endDate = dateFormat.parse(endDateStr.trim());
 
             if (endDate.before(startDate)) {
-                return "End date cannot be earlier than start date.";
+                throw new InvalidTripDataException("End date cannot be earlier than start date.");
             }
         } catch (ParseException ex) {
-            return "Dates must be in valid DD-MM-YYYY format (e.g., 19-10-2026).";
+            throw new InvalidTripDataException("Dates must be in valid DD-MM-YYYY format (e.g., 19-10-2026).", ex);
         }
+    }
 
-        return null; // All checks passed
+    /**
+     * Validates raw input strings for creating a trip.
+     * Delegates to validateTripInputsStrict and catches custom exceptions to preserve
+     * backward compatibility with existing tests.
+     * 
+     * @return null if valid, or a descriptive error message if invalid.
+     */
+    public String validateTripInputs(String tripName, String destination, String startDateStr, String endDateStr, String budgetStr) {
+        try {
+            validateTripInputsStrict(tripName, destination, startDateStr, endDateStr, budgetStr);
+            return null; // All checks passed
+        } catch (InvalidTripDataException ex) {
+            return ex.getMessage();
+        }
     }
 
     /**
@@ -1653,6 +1696,7 @@ public class MainFrame extends JFrame {
 
     /**
      * Handles the Create Trip action triggered from the form button.
+     * Demonstrates catching custom checked exceptions (Unit 3).
      */
     public boolean handleCreateTrip() {
         String tripName = txtTripName.getText();
@@ -1661,10 +1705,11 @@ public class MainFrame extends JFrame {
         String endDateStr = txtEndDate.getText();
         String budgetStr = txtBudget.getText();
 
-        String validationError = validateTripInputs(tripName, destination, startDateStr, endDateStr, budgetStr);
-        if (validationError != null) {
+        try {
+            validateTripInputsStrict(tripName, destination, startDateStr, endDateStr, budgetStr);
+        } catch (InvalidTripDataException ex) {
             showMessage(
-                    validationError,
+                    ex.getMessage(),
                     "Validation Error",
                     JOptionPane.ERROR_MESSAGE);
             return false;
@@ -1792,6 +1837,10 @@ public class MainFrame extends JFrame {
 
     public JButton getBtnBackToTrips() {
         return btnBackToTrips;
+    }
+
+    public JButton getBtnBackToHome() {
+        return btnBackToHome;
     }
 
     public JComboBox<String> getCmbTransportType() {

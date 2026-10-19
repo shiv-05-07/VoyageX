@@ -1,5 +1,7 @@
 package model;
 
+import interfaces.Billable;
+
 /**
  * Activity represents a planned event or tour in a trip (e.g., Museum Visit, Scuba Diving).
  * 
@@ -7,8 +9,9 @@ package model;
  * - Encapsulation: Private instance variables with public accessors and mutators.
  * - Constructor Overloading: Multiple constructors for different initialization needs.
  * - 'this' keyword: Differentiates instance variables from parameter names and supports constructor chaining.
+ * - Interface Implementation: Implements Billable (Unit 2).
  */
-public class Activity {
+public class Activity implements Billable {
     private int id;
     private String name;
     private String date;
@@ -67,6 +70,11 @@ public class Activity {
         } else {
             this.cost = cost;
         }
+    }
+
+    @Override
+    public double calculateCost() {
+        return getCost();
     }
 
     @Override

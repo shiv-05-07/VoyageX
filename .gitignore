@@ -30,7 +30,7 @@ replay_pid*
 
 *.md
 !README.md
-!VIVA_NOTES.md
-!PROJECT_RULES.md
-!JAVA_SYLLABUS.md
-!VoyageX_Mini_PRD_Team_Plan.md
+# !VIVA_NOTES.md
+# !PROJECT_RULES.md
+# !JAVA_SYLLABUS.md
+# !VoyageX_Mini_PRD_Team_Plan.md

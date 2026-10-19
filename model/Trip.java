@@ -1,7 +1,11 @@
 package model;
 
+import interfaces.Billable;
+
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Trip is the central model class in VoyageX, representing a user's planned itinerary.
@@ -13,8 +17,10 @@ import java.util.List;
  * - Polymorphism: The transport field is of type Transport, allowing any subclass (Flight, Train, Bus)
  *   to be attached and its specific calculateCost() method to be called dynamically.
  * - Collections Framework: Uses ArrayList to maintain dynamic lists of activities and expenses.
+ * - Interfaces: Implements Billable (Unit 2).
+ * - Java 8 Stream API: Stream filtering, mapping, and reduction for costs and categories (Unit 7).
  */
-public class Trip {
+public class Trip implements Billable {
     private int id;
     private String tripName;
     private String destination;
@@ -114,6 +120,92 @@ public class Trip {
     // Remaining budget: Budget - Total Cost
     public double calculateRemainingBudget() {
         return budget - calculateTotalCost();
+    }
+
+    /**
+     * Implementation of Billable interface.
+     * Demonstrates polymorphic cost calculation across all domain items (Unit 2).
+     */
+    @Override
+    public double calculateCost() {
+        return calculateTotalCost();
+    }
+
+    /**
+     * Aggregates all billable items (Transport, Activities, Expenses) into a polymorphic list.
+     * Demonstrates interface collections (Unit 2).
+     */
+    public List<Billable> getAllBillableItems() {
+        List<Billable> items = new ArrayList<>();
+        if (transport != null) {
+            items.add(transport);
+        }
+        if (activities != null) {
+            items.addAll(activities);
+        }
+        if (expenses != null) {
+            items.addAll(expenses);
+        }
+        return items;
+    }
+
+    /**
+     * Calculates total trip cost using the Java 8 Stream API and method references.
+     * Demonstrates Stream API mapToDouble() and sum() (Unit 7).
+     */
+    public double calculateTotalCostViaStream() {
+        return getAllBillableItems().stream()
+                .mapToDouble(Billable::calculateCost)
+                .sum();
+    }
+
+    /**
+     * Filters activities occurring on a specific date using Java 8 Stream API.
+     * Demonstrates stream filter() with lambda predicate and Collectors.toList() (Unit 7).
+     * 
+     * @param date date string in dd-MM-yyyy format
+     * @return list of matching activities
+     */
+    public List<Activity> getActivitiesByDate(String date) {
+        if (date == null || activities == null) {
+            return Collections.emptyList();
+        }
+        return activities.stream()
+                .filter(a -> a != null && date.equals(a.getDate()))
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Filters expenses belonging to a specific category using Java 8 Stream API.
+     * Demonstrates stream filter() with case-insensitive category matching (Unit 7).
+     * 
+     * @param category category name (e.g. "Food", "Lodging")
+     * @return list of matching expenses
+     */
+    public List<Expense> getExpensesByCategory(String category) {
+        if (category == null || expenses == null) {
+            return Collections.emptyList();
+        }
+        return expenses.stream()
+                .filter(e -> e != null && category.equalsIgnoreCase(e.getCategory()))
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Calculates total expenditure for a specific category using Java 8 Stream API.
+     * Demonstrates stream filter(), mapToDouble(), and sum() (Unit 7).
+     * 
+     * @param category category name to sum
+     * @return sum of expenses in the category
+     */
+    public double calculateExpenseCostByCategory(String category) {
+        if (category == null || expenses == null) {
+            return 0.0;
+        }
+        return expenses.stream()
+                .filter(e -> e != null && category.equalsIgnoreCase(e.getCategory()))
+                .mapToDouble(Expense::getAmount)
+                .sum();
     }
 
     // Getters and Setters
