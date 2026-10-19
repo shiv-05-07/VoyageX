@@ -201,6 +201,94 @@ public class Trip {
         }
     }
 
+    /**
+     * Generates a complete, structured plain-text itinerary for the trip.
+     * Demonstrates string building and data aggregation across model components.
+     */
+    public String generateItinerarySummary() {
+        StringBuilder sb = new StringBuilder();
+        String line = "======================================================================\n";
+        String divider = "----------------------------------------------------------------------\n";
+
+        sb.append(line);
+        sb.append("                       VOYAGEX TRIP ITINERARY                         \n");
+        sb.append(line);
+        sb.append(String.format("Trip Name    : %s\n", tripName.isEmpty() ? "Untitled Trip" : tripName));
+        sb.append(String.format("Destination  : %s\n", destination.isEmpty() ? "Unspecified" : destination));
+        sb.append(String.format("Travel Dates : %s to %s\n", startDate, endDate));
+        sb.append(String.format("Budget       : INR %.2f\n", budget));
+        sb.append(divider);
+
+        // 1. Transportation Section
+        sb.append("1. TRANSPORTATION\n");
+        if (transport != null) {
+            sb.append(String.format("   Mode       : %s\n", transport.getTransportType()));
+            sb.append(String.format("   Route      : %s -> %s\n", transport.getSource(), transport.getDestination()));
+            sb.append(String.format("   Base Fare  : INR %.2f\n", transport.getBaseFare()));
+            if (transport instanceof Flight) {
+                sb.append(String.format("   Baggage Fee: INR %.2f\n", ((Flight) transport).getBaggageFee()));
+            } else if (transport instanceof Train) {
+                sb.append(String.format("   Reservation: INR %.2f\n", ((Train) transport).getReservationFee()));
+            } else if (transport instanceof Bus) {
+                Bus bus = (Bus) transport;
+                sb.append(String.format("   Type       : %s\n", bus.isAc() ? "AC Bus" : "Non-AC Bus"));
+                if (bus.isAc()) {
+                    sb.append(String.format("   AC Surchg  : INR %.2f\n", bus.getAcSurcharge()));
+                }
+            }
+            sb.append(String.format("   Total Cost : INR %.2f\n", transport.calculateCost()));
+        } else {
+            sb.append("   Status     : No transportation arranged yet.\n");
+            sb.append("   Total Cost : INR 0.00\n");
+        }
+        sb.append(divider);
+
+        // 2. Scheduled Activities Section
+        sb.append(String.format("2. SCHEDULED ACTIVITIES (%d)\n", activities.size()));
+        if (activities.isEmpty()) {
+            sb.append("   No scheduled activities added yet.\n");
+        } else {
+            for (int i = 0; i < activities.size(); i++) {
+                Activity act = activities.get(i);
+                sb.append(String.format("   [%d] %s (%s) - INR %.2f\n", (i + 1), act.getName(), act.getDate(), act.getCost()));
+            }
+        }
+        sb.append(String.format("   Total Activities Cost : INR %.2f\n", calculateTotalActivityCost()));
+        sb.append(divider);
+
+        // 3. Incidental Expenses Section
+        sb.append(String.format("3. INCIDENTAL EXPENSES (%d)\n", expenses.size()));
+        if (expenses.isEmpty()) {
+            sb.append("   No incidental expenses recorded yet.\n");
+        } else {
+            for (int i = 0; i < expenses.size(); i++) {
+                Expense exp = expenses.get(i);
+                sb.append(String.format("   [%d] [%s] %s - INR %.2f\n", (i + 1), exp.getCategory(), exp.getDescription(), exp.getAmount()));
+            }
+        }
+        sb.append(String.format("   Total Other Expenses  : INR %.2f\n", calculateTotalExpenseCost()));
+        sb.append(divider);
+
+        // 4. Financial Summary
+        double totalCost = calculateTotalCost();
+        double remaining = calculateRemainingBudget();
+        sb.append("4. FINANCIAL & BUDGET SUMMARY\n");
+        sb.append(String.format("   Allocated Budget  : INR %.2f\n", budget));
+        sb.append(String.format("   Transport Cost    : INR %.2f\n", calculateTotalTransportCost()));
+        sb.append(String.format("   Activities Cost   : INR %.2f\n", calculateTotalActivityCost()));
+        sb.append(String.format("   Incidental Cost   : INR %.2f\n", calculateTotalExpenseCost()));
+        sb.append(String.format("   Grand Total Cost  : INR %.2f\n", totalCost));
+        sb.append(String.format("   Remaining Budget  : INR %.2f\n", remaining));
+        if (remaining >= 0) {
+            sb.append(String.format("   Budget Status     : WITHIN BUDGET (INR %.2f available)\n", remaining));
+        } else {
+            sb.append(String.format("   Budget Status     : OVER BUDGET by INR %.2f!\n", Math.abs(remaining)));
+        }
+        sb.append(line);
+
+        return sb.toString();
+    }
+
     @Override
     public String toString() {
         return "Trip: " + tripName + " to " + destination 

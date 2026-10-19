@@ -19,6 +19,7 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTabbedPane;
 import javax.swing.JTable;
+import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
 import javax.swing.border.TitledBorder;
@@ -150,6 +151,11 @@ public class MainFrame extends JFrame {
     private JLabel lblSummaryTotalCost;
     private JLabel lblSummaryRemaining;
     private JLabel lblSummaryStatus;
+
+    // Complete Itinerary Tab Components
+    private JTextArea txtItinerarySummary;
+    private JButton btnRefreshItinerary;
+    private JButton btnViewItinerary;
 
     public MainFrame() {
         super("VoyageX — Travel Planner");
@@ -404,6 +410,11 @@ public class MainFrame extends JFrame {
         btnManageTrip.setToolTipText("Configure transport, activities, expenses and budget for the selected trip");
         btnManageTrip.addActionListener(e -> handleManageTrip());
 
+        btnViewItinerary = new JButton("View Full Itinerary");
+        btnViewItinerary.setFont(new Font("Arial", Font.BOLD, 13));
+        btnViewItinerary.setToolTipText("View the complete consolidated itinerary for the selected trip");
+        btnViewItinerary.addActionListener(e -> handleViewItinerary());
+
         JButton btnAddAnother = new JButton("Create Another Trip");
         btnAddAnother.setFont(new Font("Arial", Font.PLAIN, 13));
         btnAddAnother.addActionListener(e -> {
@@ -416,6 +427,7 @@ public class MainFrame extends JFrame {
         btnBack.addActionListener(e -> showScreen(SCREEN_HOME));
 
         buttonsPanel.add(btnManageTrip);
+        buttonsPanel.add(btnViewItinerary);
         buttonsPanel.add(btnAddAnother);
         buttonsPanel.add(btnBack);
 
@@ -459,6 +471,7 @@ public class MainFrame extends JFrame {
         manageTabbedPane.addTab("Activities", createActivitiesTab());
         manageTabbedPane.addTab("Expenses", createExpensesTab());
         manageTabbedPane.addTab("Budget Summary", createBudgetSummaryTab());
+        manageTabbedPane.addTab("Complete Itinerary", createItineraryTab());
 
         panel.add(manageTabbedPane, BorderLayout.CENTER);
 
@@ -883,6 +896,73 @@ public class MainFrame extends JFrame {
     }
 
     /**
+     * Builds the Complete Itinerary tab panel.
+     */
+    private JPanel createItineraryTab() {
+        JPanel tab = new JPanel(new BorderLayout(10, 10));
+        tab.setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12));
+
+        // Header controls
+        JPanel topBar = new JPanel(new BorderLayout(10, 5));
+        JLabel lblHeading = new JLabel("Consolidated Trip Itinerary & Summary");
+        lblHeading.setFont(new Font("Arial", Font.BOLD, 13));
+        lblHeading.setForeground(new Color(25, 45, 80));
+
+        btnRefreshItinerary = new JButton("Refresh Itinerary");
+        btnRefreshItinerary.setFont(new Font("Arial", Font.PLAIN, 12));
+        btnRefreshItinerary.setToolTipText("Regenerate itinerary text with the latest trip details");
+        btnRefreshItinerary.addActionListener(e -> refreshItinerary());
+
+        topBar.add(lblHeading, BorderLayout.WEST);
+        topBar.add(btnRefreshItinerary, BorderLayout.EAST);
+        tab.add(topBar, BorderLayout.NORTH);
+
+        // Read-only text area with monospaced font
+        txtItinerarySummary = new JTextArea();
+        txtItinerarySummary.setEditable(false);
+        txtItinerarySummary.setFont(new Font("Monospaced", Font.PLAIN, 12));
+        txtItinerarySummary.setBackground(new Color(252, 252, 254));
+        txtItinerarySummary.setBorder(BorderFactory.createEmptyBorder(10, 12, 10, 12));
+
+        JScrollPane scrollPane = new JScrollPane(txtItinerarySummary);
+        scrollPane.setBorder(BorderFactory.createLineBorder(new Color(180, 195, 215)));
+        tab.add(scrollPane, BorderLayout.CENTER);
+
+        return tab;
+    }
+
+    /**
+     * Refreshes the Itinerary summary text area with the current trip's complete itinerary.
+     */
+    public void refreshItinerary() {
+        if (txtItinerarySummary == null) return;
+        if (selectedTrip != null) {
+            txtItinerarySummary.setText(selectedTrip.generateItinerarySummary());
+            txtItinerarySummary.setCaretPosition(0); // Scroll to top
+        } else {
+            txtItinerarySummary.setText("No trip selected.");
+        }
+    }
+
+    /**
+     * Handles the View Itinerary action from the trips list table.
+     */
+    public boolean handleViewItinerary() {
+        int selectedRow = tripsTable.getSelectedRow();
+        if (selectedRow == -1) {
+            showMessage(
+                    "Please select a trip from the table to view its itinerary.",
+                    "No Trip Selected",
+                    JOptionPane.WARNING_MESSAGE);
+            return false;
+        }
+        Trip trip = tripList.get(selectedRow);
+        openManageTrip(trip);
+        manageTabbedPane.setSelectedIndex(4); // Switch to Complete Itinerary tab
+        return true;
+    }
+
+    /**
      * Handles the Manage Trip action when user clicks the button or double clicks a table row.
      */
     public boolean handleManageTrip() {
@@ -925,6 +1005,7 @@ public class MainFrame extends JFrame {
         refreshActivitiesTable();
         refreshExpensesTable();
         refreshBudgetSummary();
+        refreshItinerary();
     }
 
     /**
@@ -1093,6 +1174,7 @@ public class MainFrame extends JFrame {
         selectedTrip.setTransport(transport);
         refreshTransportTab();
         refreshBudgetSummary();
+        refreshItinerary();
 
         showMessage(
                 type + " transport saved successfully!\nEstimated Cost: INR " + String.format("%.2f", transport.calculateCost()),
@@ -1109,6 +1191,7 @@ public class MainFrame extends JFrame {
         selectedTrip.setTransport(null);
         refreshTransportTab();
         refreshBudgetSummary();
+        refreshItinerary();
         showMessage( "Transport removed from trip.", "Transport Removed", JOptionPane.INFORMATION_MESSAGE);
         return true;
     }
@@ -1135,6 +1218,7 @@ public class MainFrame extends JFrame {
 
         refreshActivitiesTable();
         refreshBudgetSummary();
+        refreshItinerary();
 
         txtActivityName.setText("");
         txtActivityDate.setText("");
@@ -1164,6 +1248,7 @@ public class MainFrame extends JFrame {
         selectedTrip.removeActivity(removed);
         refreshActivitiesTable();
         refreshBudgetSummary();
+        refreshItinerary();
         return true;
     }
 
@@ -1189,6 +1274,7 @@ public class MainFrame extends JFrame {
 
         refreshExpensesTable();
         refreshBudgetSummary();
+        refreshItinerary();
 
         txtExpenseDescription.setText("");
         txtExpenseAmount.setText("");
@@ -1217,6 +1303,7 @@ public class MainFrame extends JFrame {
         selectedTrip.removeExpense(removed);
         refreshExpensesTable();
         refreshBudgetSummary();
+        refreshItinerary();
         return true;
     }
 
@@ -1253,9 +1340,16 @@ public class MainFrame extends JFrame {
     }
 
     /**
-     * Validates raw input strings for adding an activity.
+     * Validates raw input strings for adding an activity to the currently selected trip.
      */
     public String validateActivityInputs(String name, String dateStr, String costStr) {
+        return validateActivityInputs(name, dateStr, costStr, this.selectedTrip);
+    }
+
+    /**
+     * Validates raw input strings for adding an activity against an optional trip date range.
+     */
+    public String validateActivityInputs(String name, String dateStr, String costStr, Trip trip) {
         if (name == null || name.trim().isEmpty()
                 || dateStr == null || dateStr.trim().isEmpty()
                 || costStr == null || costStr.trim().isEmpty()) {
@@ -1272,10 +1366,23 @@ public class MainFrame extends JFrame {
 
         SimpleDateFormat dateFormat = new SimpleDateFormat("dd-MM-yyyy");
         dateFormat.setLenient(false);
+        Date activityDate;
         try {
-            dateFormat.parse(dateStr.trim());
+            activityDate = dateFormat.parse(dateStr.trim());
         } catch (ParseException e) {
             return "Activity date must be in valid DD-MM-YYYY format.";
+        }
+
+        // Validate that activity date falls within the trip date range
+        if (trip != null && trip.getStartDate() != null && trip.getEndDate() != null) {
+            try {
+                Date tripStart = dateFormat.parse(trip.getStartDate().trim());
+                Date tripEnd = dateFormat.parse(trip.getEndDate().trim());
+                if (activityDate.before(tripStart) || activityDate.after(tripEnd)) {
+                    return "Activity date must fall within trip dates (" + trip.getStartDate() + " to " + trip.getEndDate() + ").";
+                }
+            } catch (ParseException ignored) {
+            }
         }
 
         return null;
@@ -1651,5 +1758,17 @@ public class MainFrame extends JFrame {
 
     public JTextField getTxtBudget() {
         return txtBudget;
+    }
+
+    public JTextArea getTxtItinerarySummary() {
+        return txtItinerarySummary;
+    }
+
+    public JButton getBtnRefreshItinerary() {
+        return btnRefreshItinerary;
+    }
+
+    public JButton getBtnViewItinerary() {
+        return btnViewItinerary;
     }
 }

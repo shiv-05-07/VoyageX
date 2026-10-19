@@ -111,8 +111,8 @@ public class TestPhase3 {
                 frame.getLblManageTripTitle().getText().contains("Goa Beach Holiday"));
         check("Header dates and budget reflect selected trip",
                 frame.getLblManageTripDates().getText().contains("25000.00"));
-        check("ManageTabbedPane has 4 tabs",
-                frame.getManageTabbedPane().getTabCount() == 4);
+        check("ManageTabbedPane has at least 4 tabs",
+                frame.getManageTabbedPane().getTabCount() >= 4);
         check("Tab 0 is 'Transport'",
                 "Transport".equals(frame.getManageTabbedPane().getTitleAt(0)));
         check("Tab 1 is 'Activities'",

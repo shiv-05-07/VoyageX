@@ -52,17 +52,37 @@ Every team member should understand the overall application and be able to expla
   - Configure polymorphic transportation (Flight, Train, Bus with AC surcharge)
   - Manage scheduled activities with calendar date picking and expense items
   - Real-time budget breakdown, calculation, and over-budget detection
-  - Compile all files:
-    ```bash
-    javac model/*.java ui/*.java Main.java TestPhase1.java TestPhase2.java TestPhase3.java
-    ```
   - Run Phase 3 automated test suite:
     ```bash
     java TestPhase3
     ```
-  - Run the application:
+- [x] **Phase 4: Complete Itinerary & Finalization** (`Trip`, `ui/MainFrame`, `TestPhase4`)
+  - Complete consolidated itinerary generation (`generateItinerarySummary`)
+  - "Complete Itinerary" tab with monospaced scrollable text view
+  - "View Full Itinerary" button on trips table with one-click direct tab navigation
+  - Activity date range validation strictly enforcing trip date boundaries
+  - Automatic live synchronization across all components on add/remove
+  - Run Phase 4 automated test suite:
     ```bash
-    java Main
+    java TestPhase4
     ```
 
+## How to Run
 
+### 1. Compile All Files:
+```bash
+javac model/*.java ui/*.java Main.java TestPhase1.java TestPhase2.java TestPhase3.java TestPhase4.java
+```
+
+### 2. Run All Automated Test Suites:
+```bash
+java TestPhase1
+java TestPhase2
+java TestPhase3
+java TestPhase4
+```
+
+### 3. Run the Desktop Application:
+```bash
+java Main
+```
