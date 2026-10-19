@@ -75,25 +75,51 @@ Every team member should understand the overall application and be able to expla
     ```bash
     java TestPhase5
     ```
+- [x] **Phase 6: SQLite Database Persistence Using JDBC** (`dao/DatabaseManager`, `dao/TripDAO`, `TestPhase6`, `ui/MainFrame`)
+  - Standalone SQLite persistence using pure JDBC (`lib/sqlite-jdbc-3.36.0.3.jar`)
+  - Automatic relational schema initialization (`trips`, `transport`, `activities`, `expenses`)
+  - Foreign key enforcement (`PRAGMA foreign_keys = ON;`) and cascading deletes
+  - Transaction safety (`setAutoCommit(false)`, `commit()`, `rollback()`)
+  - Seamless persistence across application restarts: trips, transport (Flight, Train, Bus), activities, and expenses
+  - Trip deletion support with automatic cascade
+  - Zero pollution test isolation with temporary test database
+  - Run Phase 6 automated test suite:
+    ```bash
+    java -cp ".;lib/*" TestPhase6
+    ```
+
+## Database Storage & Inspection
+
+- **Location:** The database file is stored locally at `voyagex.db` in the project root directory.
+- **Driver:** Standalone Xerial SQLite JDBC driver located in `lib/sqlite-jdbc-3.36.0.3.jar` (Java 8 compatible, zero Maven/Gradle required).
+- **Inspection:** You can inspect `voyagex.db` using any standard SQLite client (e.g., [DB Browser for SQLite](https://sqlitebrowser.org/) or the `sqlite3` CLI):
+  ```bash
+  sqlite3 voyagex.db ".tables"
+  sqlite3 voyagex.db "SELECT * FROM trips;"
+  sqlite3 voyagex.db "SELECT * FROM transport;"
+  sqlite3 voyagex.db "SELECT * FROM activities;"
+  sqlite3 voyagex.db "SELECT * FROM expenses;"
+  ```
 
 ## How to Run
 
 ### 1. Compile All Files:
 ```bash
-javac model/*.java service/*.java ui/*.java Main.java TestPhase1.java TestPhase2.java TestPhase3.java TestPhase4.java TestPhase5.java
+javac -cp ".;lib/*" model/*.java dao/*.java service/*.java ui/*.java Main.java TestPhase1.java TestPhase2.java TestPhase3.java TestPhase4.java TestPhase5.java TestPhase6.java
 ```
 
 ### 2. Run All Automated Test Suites:
 ```bash
-java TestPhase1
-java TestPhase2
-java TestPhase3
-java TestPhase4
-java TestPhase5
+java -cp ".;lib/*" TestPhase1
+java -cp ".;lib/*" TestPhase2
+java -cp ".;lib/*" TestPhase3
+java -cp ".;lib/*" TestPhase4
+java -cp ".;lib/*" TestPhase5
+java -cp ".;lib/*" TestPhase6
 ```
 
 ### 3. Run the Desktop Application:
 ```bash
-java Main
+java -cp ".;lib/*" Main
 ```
 

@@ -7,6 +7,7 @@ import model.Flight;
 import model.Train;
 import model.Transport;
 import model.Trip;
+import dao.TripDAO;
 import service.ExportService;
 
 import javax.swing.BorderFactory;
@@ -38,6 +39,7 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.File;
 import java.io.IOException;
+import java.sql.SQLException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -61,6 +63,10 @@ public class MainFrame extends JFrame {
 
     // In-memory list to store trips during this session
     private final List<Trip> tripList = new ArrayList<Trip>();
+
+    // Database Data Access Object for Phase 6 persistence
+    private TripDAO tripDAO;
+    private boolean persistenceEnabled = false;
 
     // Reference to currently selected trip for management in Phase 3
     private Trip selectedTrip;
@@ -106,6 +112,7 @@ public class MainFrame extends JFrame {
     private JTable tripsTable;
     private JLabel lblTableStatus;
     private JButton btnManageTrip;
+    private JButton btnDeleteTrip;
 
     // Manage Trip Screen Components
     private JLabel lblManageTripTitle;
@@ -421,6 +428,11 @@ public class MainFrame extends JFrame {
         btnViewItinerary.setToolTipText("View the complete consolidated itinerary for the selected trip");
         btnViewItinerary.addActionListener(e -> handleViewItinerary());
 
+        btnDeleteTrip = new JButton("Delete Trip");
+        btnDeleteTrip.setFont(new Font("Arial", Font.PLAIN, 13));
+        btnDeleteTrip.setToolTipText("Permanently delete the selected trip and all its details");
+        btnDeleteTrip.addActionListener(e -> handleDeleteTrip());
+
         JButton btnAddAnother = new JButton("Create Another Trip");
         btnAddAnother.setFont(new Font("Arial", Font.PLAIN, 13));
         btnAddAnother.addActionListener(e -> {
@@ -434,6 +446,7 @@ public class MainFrame extends JFrame {
 
         buttonsPanel.add(btnManageTrip);
         buttonsPanel.add(btnViewItinerary);
+        buttonsPanel.add(btnDeleteTrip);
         buttonsPanel.add(btnAddAnother);
         buttonsPanel.add(btnBack);
 
@@ -1035,6 +1048,51 @@ public class MainFrame extends JFrame {
     }
 
     /**
+     * Handles the Delete Trip action for the selected trip.
+     */
+    public boolean handleDeleteTrip() {
+        int selectedRow = tripsTable.getSelectedRow();
+        if (selectedRow == -1) {
+            showMessage(
+                    "Please select a trip from the table to delete.",
+                    "No Trip Selected",
+                    JOptionPane.WARNING_MESSAGE);
+            return false;
+        }
+
+        Trip trip = tripList.get(selectedRow);
+        if (showDialogs) {
+            int confirm = JOptionPane.showConfirmDialog(
+                    this,
+                    "Are you sure you want to delete trip '" + trip.getTripName() + "'?\nThis will remove all associated transport, activities, and expenses.",
+                    "Confirm Trip Deletion",
+                    JOptionPane.YES_NO_OPTION,
+                    JOptionPane.WARNING_MESSAGE
+            );
+            if (confirm != JOptionPane.YES_OPTION) {
+                return false;
+            }
+        }
+
+        if (persistenceEnabled && tripDAO != null && trip.getId() > 0) {
+            try {
+                tripDAO.deleteTrip(trip.getId());
+            } catch (SQLException ex) {
+                showMessage("Database error deleting trip: " + ex.getMessage(), "Database Error", JOptionPane.ERROR_MESSAGE);
+                return false;
+            }
+        }
+
+        tripList.remove(selectedRow);
+        if (selectedTrip == trip) {
+            selectedTrip = null;
+        }
+        refreshTripsTable();
+        showMessage("Trip '" + trip.getTripName() + "' deleted successfully.", "Trip Deleted", JOptionPane.INFORMATION_MESSAGE);
+        return true;
+    }
+
+    /**
      * Handles the Manage Trip action when user clicks the button or double clicks a table row.
      */
     public boolean handleManageTrip() {
@@ -1243,6 +1301,15 @@ public class MainFrame extends JFrame {
             transport = new Bus(source, dest, baseFare, isAc, extraFee);
         }
 
+        if (persistenceEnabled && tripDAO != null && selectedTrip.getId() > 0) {
+            try {
+                tripDAO.saveOrUpdateTransport(selectedTrip.getId(), transport);
+            } catch (SQLException ex) {
+                showMessage("Database error saving transport: " + ex.getMessage(), "Database Error", JOptionPane.ERROR_MESSAGE);
+                return false;
+            }
+        }
+
         selectedTrip.setTransport(transport);
         refreshTransportTab();
         refreshBudgetSummary();
@@ -1260,6 +1327,16 @@ public class MainFrame extends JFrame {
      */
     public boolean handleRemoveTransport() {
         if (selectedTrip == null) return false;
+
+        if (persistenceEnabled && tripDAO != null && selectedTrip.getId() > 0) {
+            try {
+                tripDAO.deleteTransport(selectedTrip.getId());
+            } catch (SQLException ex) {
+                showMessage("Database error removing transport: " + ex.getMessage(), "Database Error", JOptionPane.ERROR_MESSAGE);
+                return false;
+            }
+        }
+
         selectedTrip.setTransport(null);
         refreshTransportTab();
         refreshBudgetSummary();
@@ -1286,6 +1363,17 @@ public class MainFrame extends JFrame {
 
         double cost = Double.parseDouble(costStr.trim());
         Activity activity = new Activity(name.trim(), date.trim(), cost);
+
+        if (persistenceEnabled && tripDAO != null && selectedTrip.getId() > 0) {
+            try {
+                int actId = tripDAO.addActivity(selectedTrip.getId(), activity);
+                activity.setId(actId);
+            } catch (SQLException ex) {
+                showMessage("Database error adding activity: " + ex.getMessage(), "Database Error", JOptionPane.ERROR_MESSAGE);
+                return false;
+            }
+        }
+
         selectedTrip.addActivity(activity);
 
         refreshActivitiesTable();
@@ -1317,6 +1405,16 @@ public class MainFrame extends JFrame {
             return false;
         }
         Activity removed = selectedTrip.getActivities().get(row);
+
+        if (persistenceEnabled && tripDAO != null && removed.getId() > 0) {
+            try {
+                tripDAO.deleteActivity(removed.getId());
+            } catch (SQLException ex) {
+                showMessage("Database error removing activity: " + ex.getMessage(), "Database Error", JOptionPane.ERROR_MESSAGE);
+                return false;
+            }
+        }
+
         selectedTrip.removeActivity(removed);
         refreshActivitiesTable();
         refreshBudgetSummary();
@@ -1342,6 +1440,17 @@ public class MainFrame extends JFrame {
 
         double amount = Double.parseDouble(amountStr.trim());
         Expense expense = new Expense(category, description.trim(), amount);
+
+        if (persistenceEnabled && tripDAO != null && selectedTrip.getId() > 0) {
+            try {
+                int expId = tripDAO.addExpense(selectedTrip.getId(), expense);
+                expense.setId(expId);
+            } catch (SQLException ex) {
+                showMessage("Database error adding expense: " + ex.getMessage(), "Database Error", JOptionPane.ERROR_MESSAGE);
+                return false;
+            }
+        }
+
         selectedTrip.addExpense(expense);
 
         refreshExpensesTable();
@@ -1372,6 +1481,16 @@ public class MainFrame extends JFrame {
             return false;
         }
         Expense removed = selectedTrip.getExpenses().get(row);
+
+        if (persistenceEnabled && tripDAO != null && removed.getId() > 0) {
+            try {
+                tripDAO.deleteExpense(removed.getId());
+            } catch (SQLException ex) {
+                showMessage("Database error removing expense: " + ex.getMessage(), "Database Error", JOptionPane.ERROR_MESSAGE);
+                return false;
+            }
+        }
+
         selectedTrip.removeExpense(removed);
         refreshExpensesTable();
         refreshBudgetSummary();
@@ -1553,6 +1672,17 @@ public class MainFrame extends JFrame {
 
         double budget = Double.parseDouble(budgetStr.trim());
         Trip trip = new Trip(tripName.trim(), destination.trim(), startDateStr.trim(), endDateStr.trim(), budget);
+
+        if (persistenceEnabled && tripDAO != null) {
+            try {
+                int dbId = tripDAO.saveTrip(trip);
+                trip.setId(dbId);
+            } catch (SQLException ex) {
+                showMessage("Database error saving trip: " + ex.getMessage(), "Database Error", JOptionPane.ERROR_MESSAGE);
+                return false;
+            }
+        }
+
         addTrip(trip);
 
         showMessage(
@@ -1846,5 +1976,51 @@ public class MainFrame extends JFrame {
 
     public JButton getBtnExportItinerary() {
         return btnExportItinerary;
+    }
+
+    public JButton getBtnDeleteTrip() {
+        return btnDeleteTrip;
+    }
+
+    // Persistence configuration and database synchronization
+    public void enablePersistence() {
+        enablePersistence(new TripDAO());
+    }
+
+    public void enablePersistence(TripDAO dao) {
+        this.tripDAO = dao;
+        this.persistenceEnabled = (dao != null);
+    }
+
+    public boolean isPersistenceEnabled() {
+        return persistenceEnabled;
+    }
+
+    public TripDAO getTripDAO() {
+        return tripDAO;
+    }
+
+    public void setTripDAO(TripDAO tripDAO) {
+        this.tripDAO = tripDAO;
+        this.persistenceEnabled = (tripDAO != null);
+    }
+
+    /**
+     * Loads saved trips from the database into the session list and updates the table.
+     */
+    public void loadTripsFromDatabase() {
+        if (tripDAO == null) {
+            tripDAO = new TripDAO();
+            persistenceEnabled = true;
+        }
+        try {
+            tripList.clear();
+            List<Trip> loaded = tripDAO.getAllTrips();
+            tripList.addAll(loaded);
+            refreshTripsTable();
+        } catch (SQLException ex) {
+            showMessage("Failed to load trips from database: " + ex.getMessage(),
+                    "Database Error", JOptionPane.ERROR_MESSAGE);
+        }
     }
 }
