@@ -312,7 +312,7 @@ classDiagram
     MainFrame ..> InvalidTripDataException : catches validation errors
 
     TripDAO ..> DatabaseManager : obtains Connection
-    ExportService +-- ExportCallback : defines
+    ExportService ..> ExportCallback : uses
 ```
 
 ---
@@ -339,10 +339,10 @@ flowchart TD
         OpenDatePicker --> SelectDate["Select Day or Click 'Today'"]
         SelectDate --> PopDate["Populate DD-MM-YYYY in field"]
         PopDate --> SubmitCreate["Click 'Create Trip'"]
-        DatePickerPrompt -->|No (Manual typing)| SubmitCreate
+        DatePickerPrompt -->|No - Manual typing| SubmitCreate
 
         SubmitCreate --> ValCreate{"validateTripInputsStrict()"}
-        ValCreate -->|Invalid (Empty / Bad Date / Negative Budget)| ErrDialog["Throw InvalidTripDataException / InvalidBudgetException<br/>Show Error Dialog"]
+        ValCreate -->|Invalid - Empty, Bad Date, or Bad Budget| ErrDialog["Throw InvalidTripDataException / InvalidBudgetException<br/>Show Error Dialog"]
         ErrDialog --> CreateCard
 
         ValCreate -->|Valid| SaveNewTrip["Instantiate new Trip<br/>TripDAO.saveTrip(trip)"]
@@ -377,14 +377,14 @@ flowchart TD
         SaveTransport --> RefreshCalc["Recalculate Totals & Update Live Banners"]
 
         TabNav -->|Tab 1: Activities| TabActivity["Add/Remove Scheduled Activities"]
-        TabActivity --> ValAct{"Date in Trip Range?<br/>(start <= actDate <= end)"}
+        TabActivity --> ValAct{"Date in Trip Range?<br/>(start to end)"}
         ValAct -->|No| ActDateErr["Show Date Error Dialog"]
         ActDateErr --> TabActivity
         ValAct -->|Yes| SaveAct["TripDAO.addActivity()"]
         SaveAct --> RefreshCalc
 
         TabNav -->|Tab 2: Expenses| TabExpense["Add/Remove Incidental Expenses"]
-        TabExpense --> ValExp{"Amount >= 0?"}
+        TabExpense --> ValExp{"Amount is Valid?<br/>(cost >= 0)"}
         ValExp -->|No| ExpErr["Show Amount Error Dialog"]
         ExpErr --> TabExpense
         ValExp -->|Yes| SaveExp["TripDAO.addExpense()"]
@@ -526,11 +526,3 @@ VoyageX requires exactly one standalone external JAR:
 - **Synchronous Database Calls:** Database queries execute synchronously on the calling thread.
 - **Static Pricing Model:** Transport fares and costs are estimated entries rather than live booking API rates.
 - **Export Format:** Itineraries export to plain text (`.txt`); PDF and HTML formats are not supported.
-
----
-
-## 16. Academic & Viva Reference
-
-For comprehensive technical explanations, code walkthroughs, design patterns, syllabus mapping (Units 1 through 7), and 18+ model viva Q&As, consult:
-
-👉 **[`VIVA_NOTES.md`](file:///d:/Shivam/VoyageX/VoyageX/VIVA_NOTES.md)**
