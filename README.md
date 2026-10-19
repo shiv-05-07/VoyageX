@@ -47,5 +47,22 @@ Every team member should understand the overall application and be able to expla
     ```bash
     java TestPhase2
     ```
+- [x] **Phase 3: Transport, Activities & Budget** (`ui/MainFrame`, `TestPhase3`)
+  - Select and manage trips from session list
+  - Configure polymorphic transportation (Flight, Train, Bus with AC surcharge)
+  - Manage scheduled activities with calendar date picking and expense items
+  - Real-time budget breakdown, calculation, and over-budget detection
+  - Compile all files:
+    ```bash
+    javac model/*.java ui/*.java Main.java TestPhase1.java TestPhase2.java TestPhase3.java
+    ```
+  - Run Phase 3 automated test suite:
+    ```bash
+    java TestPhase3
+    ```
+  - Run the application:
+    ```bash
+    java Main
+    ```
 
 
